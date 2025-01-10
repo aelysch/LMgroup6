@@ -90,28 +90,22 @@ def run_all_actions(rob: IRobobo):
 
 
 def move_until_wall(rob: IRobobo):
-    """
-    Makes the robot move forward until a wall is detected,
-    then moves backward for 2 seconds.
-    """
-    # Start moving forward for a long duration (e.g., 10 seconds)
-    
 
     while True:
-        rob.move_blocking(100, 100, 10000)
-        
-        irs = rob.read_irs()  # Read IR sensor data (list)
-        print("IRS data:", irs)  
-        front= irs[4]  
-        #front_right1 =irs[2]
-        #front_right2 = irs[7]
+        irs_data=[]
+        irs_value = rob.read_irs()[4]  
+        irs_data.append(irs_value)
+        print(f"Current IR value: {irs_value}")
 
-        if front > 10:  
-            rob.move_blocking(0,0,1000)
+        if irs_data[-1] < 100:  
+            rob.move_blocking(50, 50, 100)  
+        else:
+            print("Wall detected, stopping.")
+            rob.move_blocking(0, 0, 100)  # Stop the robot
             break
 
-    # Move backward for 2 seconds
-    rob.move_blocking(-100, -100, 2000) 
+    rob.move_blocking(-100,-100,1000)
+    
 
 
 def run_sequence(rob: IRobobo):
@@ -122,3 +116,4 @@ def run_sequence(rob: IRobobo):
 
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()
+
