@@ -11,6 +11,7 @@ from robobo_interface import (
     HardwareRobobo,
 )
 
+'''
 
 def test_emotions(rob: IRobobo):
     rob.set_emotion(Emotion.HAPPY)
@@ -80,6 +81,44 @@ def run_all_actions(rob: IRobobo):
         test_hardware(rob)
 
     test_phone_movement(rob)
+
+    if isinstance(rob, SimulationRobobo):
+        rob.stop_simulation()
+    
+''' 
+
+
+
+def move_until_wall(rob: IRobobo):
+    """
+    Makes the robot move forward until a wall is detected,
+    then moves backward for 2 seconds.
+    """
+    # Start moving forward for a long duration (e.g., 10 seconds)
+    
+
+    while True:
+        rob.move_blocking(100, 100, 10000)
+        
+        irs = rob.read_irs()  # Read IR sensor data (list)
+        print("IRS data:", irs)  
+        front= irs[4]  
+        #front_right1 =irs[2]
+        #front_right2 = irs[7]
+
+        if front > 10:  
+            rob.move_blocking(0,0,1000)
+            break
+
+    # Move backward for 2 seconds
+    rob.move_blocking(-100, -100, 2000) 
+
+
+def run_sequence(rob: IRobobo):
+    if isinstance(rob, SimulationRobobo):
+        rob.play_simulation()
+
+    move_until_wall(rob)
 
     if isinstance(rob, SimulationRobobo):
         rob.stop_simulation()
