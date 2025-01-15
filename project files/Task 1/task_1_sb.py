@@ -20,40 +20,21 @@ class RoboboEnv(gym.Env):
     """
     Custom Gym environment for the iRobobo robot.
     """
-
     def __init__(self, rob: SimulationRobobo):
         super(RoboboEnv, self).__init__()
         self.rob = rob
-        self.action_space = gym.spaces.Discrete(3)  # [0: Forward, 1: Left, 2: Right]
+        self.action_space = gym.spaces.Discrete(3)  # [0: Forward, 1: Left, 2: Right, 3: Backward]
         self.observation_space = gym.spaces.Box(
             low=0, high=255, shape=(1,), dtype=np.float32  # IR sensor value
         )
-    
-    def set_position(self, position: Position, orientation: Orientation) -> None:
-        """Set the position of the Robobo in the simulation
-        More information at: https://manual.coppeliarobotics.com/en/positionOrientationTransformation.htm
-        """
-        self._sim.setObjectPosition(self._robobo, [position.x, position.y, position.z])
-        self._sim.setObjectOrientation(
-            self._robobo, [orientation.yaw, orientation.pitch, orientation.roll]
-        )
 
-    def get_base_position(self) -> Position:
-        """Get the position of the base to deliver food at.
+        self.position = self.rob.get_position()
+        self.orientation = self.rob.get_orientation()
 
-        This only works in the simulation.
-        Trivially doesn't work when the simulation does not have a base.
-        """
-        if self._base is None:
-            raise AttributeError("Scene does not have a base")
-
-        pos = self._sim.getObjectPosition(self._base, self._sim.handle_world)
-        return Position(*pos)
-
-    def reset(self, position):
+    def reset(self):
         """Resets the environment and robot state."""
         self.rob.reset_wheels()
-        self.rob.set_position(position)
+        self.rob.set_position(self.position, self.orientation)
         self.rob.play_simulation()
         return np.array([self.rob.read_irs()[4]])  # Initial IR value
 
@@ -62,9 +43,11 @@ class RoboboEnv(gym.Env):
         if action == 0:  # Forward
             self.rob.move_blocking(50, 50, 100)
         elif action == 1:  # Left
-            self.rob.move_blocking(-50, 50, 1000)
+            self.rob.move_blocking(-50, 50, 100)
         elif action == 2:  # Right
-            self.rob.move_blocking(50, -50, 1000)
+            self.rob.move_blocking(50, -50, 100)
+        elif action == 3: # Backward
+            self.rob.move_blocking(-50, -50, 100)
 
         # Read IR sensor values
         ir_value = self.rob.read_irs()[4]
@@ -102,19 +85,25 @@ def train_robot_with_dqn(rob: SimulationRobobo):
     )
 
     # Set up checkpoint callback
-    checkpoint_callback = CheckpointCallback(
-        save_freq=100, save_path="./learning_machines/", name_prefix="dqn_robobo"
-    )
+    try:
+        checkpoint_callback = CheckpointCallback(
+            save_freq=500, save_path="./learning_machines/", name_prefix="dqn_robobo"
+        )
+    except Exception as e:
+        print(f"Failed to save the checkpoint: {e}")
 
     # Train the model
     model.learn(total_timesteps=500, callback=checkpoint_callback)
 
     # Save the model
-    model.save("dqn_robobo_model")
+    try:
+        model.save("dqn_robobo_model")
+    except Exception as e:
+        print(f"Failed to save the model: {e}")
 
     env.close()
 
-# Example usage
+# Run with final model
 def run_sequence_with_dqn(rob: SimulationRobobo):
     """Runs the sequence with a trained DQN model."""
     robobo_env = RoboboEnv(rob)
