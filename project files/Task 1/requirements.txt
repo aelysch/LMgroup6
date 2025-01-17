@@ -1,3 +1,5 @@
+# Add the dqn_robobo_model to your results directory to run the task_1_dqn_hardware.py script.
+
 pyzmq~=26.0
 cbor2~=5.6
 coppeliasim-zmqremoteapi-client~=2.0
